@@ -1,0 +1,4 @@
+dados/brutos/*.csv
+dados/limpos/*.csv
+__pycache__/
+.venv/
