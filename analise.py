@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.formula.api as smf
 from scipy import stats
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
 from statsmodels.stats.power import TTestPower
 
 RAIZ = pathlib.Path(__file__).parent
@@ -185,7 +186,57 @@ def exploratorias(df: pd.DataFrame) -> dict:
             "previsao": prev}
 
 
-# ------------------------------------------------------------------ 5. figura
+# ------------------------------------- 5. pergunta 2: 4 grupos (tamanho × IA)
+GRUPOS = ["Curta sem IA", "Curta com IA", "Longa sem IA", "Longa com IA"]
+
+
+def pergunta2(df: pd.DataFrame) -> dict:
+    """Adendo do protocolo (12/11/2026): teste com 4 grupos, pedido em aula."""
+    out("\n== Pergunta 2 (adendo do protocolo, 12/11/2026): tamanho da tarefa × IA, 4 grupos ==")
+    corte = df["predicted_time_no_ai"].median()
+    d = df.copy()
+    d["tamanho"] = np.where(d["predicted_time_no_ai"] <= corte, "Curta", "Longa")
+    d["grupo"] = d["tamanho"] + d["ai_treatment"].map({0: " sem IA", 1: " com IA"})
+    # resposta: log(tempo real / tempo previsto sem IA), desconta tamanho e ritmo do dev
+    d["log_razao"] = np.log(d["initial_implementation_time"] / d["predicted_time_no_ai"])
+    d.to_csv(LIMPOS / "tarefas_4grupos.csv", index=False)
+    amostras = [d.loc[d.grupo == g, "log_razao"] for g in GRUPOS]
+    out(f"Corte na mediana da previsão sem IA: {corte:.0f} min (curta: <= {corte:.0f})")
+    out("n por grupo: " + "; ".join(f"{g} = {len(a)}" for g, a in zip(GRUPOS, amostras)))
+    out("Média geométrica de tempo real/previsto: " + "; ".join(f"{g} = {np.exp(a.mean()):.2f}" for g, a in zip(GRUPOS, amostras)))
+    modelo = smf.ols("log_razao ~ C(grupo)", data=d).fit()
+    sw = stats.shapiro(modelo.resid)
+    lev = stats.levene(*amostras, center="median")
+    an = stats.f_oneway(*amostras)
+    eta2 = 1 - modelo.ssr / ((d["log_razao"] - d["log_razao"].mean()) ** 2).sum()
+    kw = stats.kruskal(*amostras)
+    gl1, gl2 = len(GRUPOS) - 1, len(d) - len(GRUPOS)
+    out(f"Shapiro-Wilk nos resíduos: W = {sw.statistic:.3f}, p = {sw.pvalue:.3f}")
+    out(f"Levene (mediana): F = {lev.statistic:.2f}, p = {lev.pvalue:.3f}")
+    out(f"ANOVA: F({gl1}, {gl2}) = {an.statistic:.2f}, p = {an.pvalue:.3f}; eta² = {eta2:.3f}")
+    out(f"Kruskal-Wallis: H({gl1}) = {kw.statistic:.2f}, p = {kw.pvalue:.3f}")
+    tk = pairwise_tukeyhsd(d["log_razao"], d["grupo"])
+    tab = pd.DataFrame(tk._results_table.data[1:], columns=tk._results_table.data[0])
+    out("Tukey HSD (razão = grupo A ÷ grupo B, IC 95% e p corrigidos):")
+    pares = []
+    for _, r in tab.iterrows():
+        # orientação: no mesmo tamanho, com IA ÷ sem IA; nos demais, a ordem do Tukey
+        a_, b_, dif, lo, hi = r["group2"], r["group1"], r["meandiff"], r["lower"], r["upper"]
+        if a_.split()[0] == b_.split()[0] and "sem IA" in a_:
+            a_, b_, dif, lo, hi = b_, a_, -dif, -hi, -lo
+        xa, xb = d.loc[d.grupo == a_, "log_razao"], d.loc[d.grupo == b_, "log_razao"]
+        sp = np.sqrt(((len(xa) - 1) * xa.var(ddof=1) + (len(xb) - 1) * xb.var(ddof=1)) / (len(xa) + len(xb) - 2))
+        dc = dif / sp
+        out(f"  {a_} ÷ {b_}: razão = {np.exp(dif):.2f} [{np.exp(lo):.2f}; {np.exp(hi):.2f}], p = {r['p-adj']:.3f}, d = {dc:.3f}")
+        pares.append({"a": a_, "b": b_, "razao": float(np.exp(dif)), "ic": (float(np.exp(lo)), float(np.exp(hi))),
+                      "p": float(r["p-adj"]), "d": float(dc)})
+    return {"corte_min": float(corte), "n": {g: int(len(a)) for g, a in zip(GRUPOS, amostras)},
+            "shapiro_W": sw.statistic, "shapiro_p": sw.pvalue, "levene_F": lev.statistic, "levene_p": lev.pvalue,
+            "anova_F": an.statistic, "anova_gl": (gl1, gl2), "anova_p": an.pvalue, "eta2": float(eta2),
+            "kruskal_H": kw.statistic, "kruskal_p": kw.pvalue, "tukey": pares}
+
+
+# ------------------------------------------------------------------ 6. figura
 def figura(df: pd.DataFrame, m: pd.DataFrame) -> None:
     plt.rcParams.update({"font.size": 7, "font.family": "DejaVu Sans", "axes.edgecolor": "#888",
                          "axes.linewidth": 0.6, "xtick.color": "#444", "ytick.color": "#444"})
@@ -251,15 +302,17 @@ def main() -> None:
     res = confirmatoria(m)
     exp = exploratorias(df)
     plan = planejamento(res)
+    p2 = pergunta2(df)
     figura(df, m)
     numeros = {"descritiva": tab.to_dict(orient="index"), "confirmatoria": res, "exploratorias": exp,
-               "planejamento": plan, "n_tarefas": int(len(df)),
+               "planejamento": plan, "pergunta2": p2, "n_tarefas": int(len(df)),
                "min_tarefas_cond": int(m[["n_sem_ia", "n_com_ia"]].min().min()),
                "max_tarefas_cond": int(m[["n_sem_ia", "n_com_ia"]].max().max()),
                "post_review_ausentes": int(df["post_review_implementation_time"].isna().sum())}
     (RES / "numeros.json").write_text(json.dumps(numeros, indent=2, default=lambda o: o.item() if hasattr(o, "item") else str(o)), encoding="utf-8")
     out("\nTotal de testes de hipótese executados: 1 confirmatório (t pareado) + 1 alternativo "
-        "previsto (Wilcoxon) + Shapiro-Wilk + 2 exploratórios (E1 Welch, E2 regressão)")
+        "previsto (Wilcoxon) + Shapiro-Wilk + 2 exploratórios (E1 Welch, E2 regressão); "
+        "pergunta 2: ANOVA + Kruskal-Wallis + Tukey, com Shapiro-Wilk e Levene")
     (RES / "resultados.txt").write_text("\n".join(linhas_saida), encoding="utf-8")
 
 

@@ -35,6 +35,22 @@ E3 – Previsão prévia dos devs (média geométrica IA/sem IA): 0.752 (-24.8%)
 
 Planejamento: para detectar redução de 20% (dp(d) = 0.608; d_z = 0.37) com poder 80%: n = 48 desenvolvedores; poder com n = 16: 0.40
 
+== Pergunta 2 (adendo do protocolo, 12/11/2026): tamanho da tarefa × IA, 4 grupos ==
+Corte na mediana da previsão sem IA: 90 min (curta: <= 90)
+n por grupo: Curta sem IA = 58; Curta com IA = 71; Longa sem IA = 52; Longa com IA = 65
+Média geométrica de tempo real/previsto: Curta sem IA = 0.82; Curta com IA = 0.95; Longa sem IA = 0.65; Longa com IA = 0.80
+Shapiro-Wilk nos resíduos: W = 0.994, p = 0.412
+Levene (mediana): F = 0.10, p = 0.959
+ANOVA: F(3, 242) = 3.60, p = 0.014; eta² = 0.043
+Kruskal-Wallis: H(3) = 11.45, p = 0.010
+Tukey HSD (razão = grupo A ÷ grupo B, IC 95% e p corrigidos):
+  Curta com IA ÷ Curta sem IA: razão = 1.16 [0.86; 1.56], p = 0.556, d = 0.235
+  Longa com IA ÷ Curta com IA: razão = 0.84 [0.63; 1.11], p = 0.377, d = -0.278
+  Longa sem IA ÷ Curta com IA: razão = 0.68 [0.50; 0.92], p = 0.007, d = -0.606
+  Longa com IA ÷ Curta sem IA: razão = 0.97 [0.72; 1.31], p = 0.995, d = -0.043
+  Longa sem IA ÷ Curta sem IA: razão = 0.79 [0.58; 1.09], p = 0.224, d = -0.362
+  Longa com IA ÷ Longa sem IA: razão = 1.23 [0.90; 1.68], p = 0.309, d = 0.318
+
 Figura salva em figuras/figura1.png
 
-Total de testes de hipótese executados: 1 confirmatório (t pareado) + 1 alternativo previsto (Wilcoxon) + Shapiro-Wilk + 2 exploratórios (E1 Welch, E2 regressão)
+Total de testes de hipótese executados: 1 confirmatório (t pareado) + 1 alternativo previsto (Wilcoxon) + Shapiro-Wilk + 2 exploratórios (E1 Welch, E2 regressão); pergunta 2: ANOVA + Kruskal-Wallis + Tukey, com Shapiro-Wilk e Levene

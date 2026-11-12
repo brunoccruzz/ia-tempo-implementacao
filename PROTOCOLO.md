@@ -24,3 +24,19 @@
 | **AMEAÇAS À VALIDADE INICIAIS** | Conclusão: n = 16 devs, baixo poder. Interna: tempo autorrelatado; sem cegamento; nº desigual de tarefas por dev. Construção: "tempo até o PR" ≠ produtividade (ignora qualidade). Externa: devs muito experientes, projetos maduros, ferramentas do início de 2025. |
 
 **Análises exploratórias (rótulo obrigatório, não confirmatórias):** (E1) Welch no nível da tarefa, ignorando o bloco, para comparar com o pareado (Aula 07); (E2) tempo total (inicial + pós-revisão) com a imputação dos autores; (E3) tempo previsto × tempo real. Todo teste feito será contado no artigo.
+
+## Adendo: pergunta 2 (registrado em 12/11/2026, antes de rodar)
+
+Pedido do professor em aula: um teste com 3 ou mais grupos.
+
+| Campo | Conteúdo |
+|---|---|
+| **PERGUNTA 2** | A IA ajuda mais em tarefa curta ou longa? |
+| **GRUPOS (k = 4)** | Tarefa curta sem IA, curta com IA, longa sem IA, longa com IA. Curta: previsão sem IA (`predicted_time_no_ai`) até a mediana (90 min); longa: acima da mediana. |
+| **VD** | log(tempo real ÷ tempo que o próprio dev previa sem IA). Desconta o tamanho da tarefa e o ritmo de cada pessoa. |
+| **H0 / H1** | H0: as 4 médias são iguais. H1: pelo menos uma difere (bilateral). |
+| **TESTE PREVISTO, α** | ANOVA de um fator, α = 0,05. Suposições: Shapiro-Wilk nos resíduos e Levene (mediana). |
+| **TESTE ALTERNATIVO** | Kruskal-Wallis (compara postos, não supõe normalidade). Reportado sempre, como verificação. |
+| **COMPARAÇÕES PAR A PAR** | Se a ANOVA der p < 0,05: Tukey HSD, com p-valores corrigidos. |
+| **EFEITO** | η² da ANOVA; razão de médias geométricas com IC 95% e d de Cohen em cada par. |
+| **AMEAÇA** | Tarefas do mesmo desenvolvedor não são independentes. A pergunta 2 é complementar e não muda a decisão da pergunta 1. |

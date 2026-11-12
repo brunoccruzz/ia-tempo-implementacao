@@ -173,10 +173,40 @@ def poder():
     plt.close(fig)
 
 
+# ---------------------------------------------------------------- 5. pergunta 2 (4 grupos)
+def kgrupos():
+    g4 = pd.read_csv(RAIZ / "dados" / "limpos" / "tarefas_4grupos.csv")
+    p2 = N["pergunta2"]
+    ordem = [("Curta sem IA", COR_SEM), ("Curta com IA", COR_IA), ("Longa sem IA", COR_SEM), ("Longa com IA", COR_IA)]
+    fig, ax = plt.subplots(figsize=(1000 / DPI, 560 / DPI))
+    rng = np.random.default_rng(2026)
+    for i, (g, cor) in enumerate(ordem):
+        r = np.exp(g4.loc[g4.grupo == g, "log_razao"])
+        ax.scatter(i + rng.uniform(-0.18, 0.18, len(r)), r, s=10, color=cor, alpha=0.45, linewidths=0)
+        mg = np.exp(np.log(r).mean())
+        ax.plot([i - 0.28, i + 0.28], [mg, mg], color=TINTA, lw=2.2)
+        ax.text(i + 0.31, mg, br(mg, 2), va="center", fontsize=11)
+    ax.axhline(1, color=CINZA, lw=0.8, ls=":")
+    ax.set_yscale("log")
+    ticks = [0.1, 0.25, 0.5, 1, 2, 4, 8]
+    ax.yaxis.set_major_locator(FixedLocator(ticks))
+    ax.yaxis.set_major_formatter(FixedFormatter([br(t, 2).rstrip("0").rstrip(",") for t in ticks]))
+    ax.yaxis.set_minor_formatter(NullFormatter())
+    ax.set_xticks(range(4), [f"{g}\n(n ={p2['n'][g]})" for g, _ in ordem])
+    ax.set_ylabel("tempo real ÷ previsto sem IA (log)")
+    ax.set_title(f"ANOVA: F({p2['anova_gl'][0]}, {p2['anova_gl'][1]}) = {br(p2['anova_F'], 2)}, "
+                 f"p = {br(p2['anova_p'], 3)}; Kruskal-Wallis p = {br(p2['kruskal_p'], 3)}", loc="left", fontsize=12)
+    limpar(ax)
+    fig.tight_layout(pad=0.4)
+    fig.savefig(FIG / "slide_kgrupos.png", dpi=DPI)
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     FIG.mkdir(exist_ok=True)
     distribuicao()
     forest()
     comparacao()
     poder()
+    kgrupos()
     print("Gráficos salvos em figuras/slide_*.png")
